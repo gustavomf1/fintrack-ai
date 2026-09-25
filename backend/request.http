@@ -1,0 +1,13 @@
+### Listar transações
+  GET http://localhost:3000/transactions
+    
+  ### Criar transação
+  POST http://localhost:3000/transactions
+  Content-Type: application/json
+
+  {
+    "description": "Uber",
+    "amount": 25.5,
+    "category": "transport",
+    "date": "2026-09-25T00:00:00.000Z"
+  }
