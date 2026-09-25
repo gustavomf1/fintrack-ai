@@ -1,20 +1,22 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { Transaction } from './entities/transaction.entity';
+import { DRIZZLE } from '../db/drizzle.module';
+import { NodePgDatabase } from 'drizzle-orm/node-postgres/driver';
+import { transactions } from '../db/schema';
 
 type CreateTransactionDto = Omit<Transaction, 'id'>;
 
 @Injectable()
 export class TransactionsService {
-    private transactions: Transaction[] = [];
+    constructor(@Inject(DRIZZLE) private readonly db: NodePgDatabase) {}
 
-    findAll(): Transaction[] {
-        return this.transactions;
+    async findAll(){
+        return this.db.select().from(transactions);
     }
 
-    create(data: CreateTransactionDto): Transaction {
-        const newTransaction: Transaction = { id: randomUUID(), ...data };
-        this.transactions.push(newTransaction);
+    async create(data: CreateTransactionDto){
+        const [newTransaction] = await this.db.insert(transactions).values(data).returning();
         return newTransaction;
     }
 }
