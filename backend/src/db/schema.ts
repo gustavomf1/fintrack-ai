@@ -7,5 +7,6 @@ export const transactions = pgTable('transactions', {
     amount: numeric('amount', { precision: 10, scale: 2, mode: 'number' }).notNull(),
     category: categoryEnuym('category').notNull(),
     description: text('description').notNull(),
+    date: timestamp('date').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
 });
