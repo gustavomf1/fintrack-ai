@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { randomUUID } from 'crypto';
+import { eq } from 'drizzle-orm';
 import { Transaction } from './entities/transaction.entity';
 import { DRIZZLE } from '../db/drizzle.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres/driver';
@@ -11,8 +11,8 @@ type CreateTransactionDto = Omit<Transaction, 'id'>;
 export class TransactionsService {
     constructor(@Inject(DRIZZLE) private readonly db: NodePgDatabase) {}
 
-    async findAll(){
-        return this.db.select().from(transactions);
+    async findAll(userId: string){
+        return this.db.select().from(transactions).where(eq(transactions.userId, userId));
     }
 
     async create(data: CreateTransactionDto){

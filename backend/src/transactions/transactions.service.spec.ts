@@ -10,13 +10,14 @@ describe('TransactionsService', () => {
   beforeEach(async () => {
     mockDb = {
       select: jest.fn().mockReturnThis(),
-      from: jest.fn().mockResolvedValue([
-        { id: '1', amount: 50, category: 'food', description: 'Lunch', createdAt: new Date() },
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockResolvedValue([
+        { id: '1', userId: 'user-1', amount: 50, category: 'food', description: 'Lunch', createdAt: new Date() },
       ]),
       insert: jest.fn().mockReturnThis(),
       values: jest.fn().mockReturnThis(),
       returning: jest.fn().mockResolvedValue([
-        { id: '2', amount: 30, category: 'transport', description: 'Uber', createdAt: new Date() },
+        { id: '2', userId: 'user-1', amount: 30, category: 'transport', description: 'Uber', createdAt: new Date() },
       ]),
     };
 
@@ -34,18 +35,25 @@ describe('TransactionsService', () => {
     expect(service).toBeDefined();
   });
 
-  it('findAll retorna as linhas que o db devolve', async () => {
-    const result = await service.findAll();
+  it('findAll retorna só as linhas do usuário logado', async () => {
+    const result = await service.findAll('user-1');
 
     expect(mockDb.select).toHaveBeenCalled();
     expect(mockDb.from).toHaveBeenCalledWith(transactions);
+    expect(mockDb.where).toHaveBeenCalled();
     expect(result).toEqual([
-      { id: '1', amount: 50, category: 'food', description: 'Lunch', createdAt: expect.any(Date) },
+      { id: '1', userId: 'user-1', amount: 50, category: 'food', description: 'Lunch', createdAt: expect.any(Date) },
     ]);
   });
 
   it('create insere e retorna a transação criada', async () => {
-    const data = { amount: 30, category: 'transport' as const, description: 'Uber', date: new Date() };
+    const data = {
+      userId: 'user-1',
+      amount: 30,
+      category: 'transport' as const,
+      description: 'Uber',
+      date: new Date(),
+    };
 
     const result = await service.create(data);
 
@@ -53,7 +61,7 @@ describe('TransactionsService', () => {
     expect(mockDb.values).toHaveBeenCalledWith(data);
     expect(mockDb.returning).toHaveBeenCalled();
     expect(result).toEqual(
-      { id: '2', amount: 30, category: 'transport', description: 'Uber', createdAt: expect.any(Date) },
+      { id: '2', userId: 'user-1', amount: 30, category: 'transport', description: 'Uber', createdAt: expect.any(Date) },
     );
   });
 });

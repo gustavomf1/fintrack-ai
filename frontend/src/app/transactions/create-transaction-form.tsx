@@ -10,17 +10,18 @@ export function CreateTransactionForm() {
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<Category>("food");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setIsSubmitting(true);
-    setError(false);
+    setError(null);
 
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/transactions`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: parseFloat(amount),
@@ -29,6 +30,11 @@ export function CreateTransactionForm() {
           category,
         }),
       });
+
+      if (res.status === 401) {
+        router.push("/login");
+        return;
+      }
       if (!res.ok) throw new Error("request failed");
 
       setAmount("");
@@ -37,7 +43,7 @@ export function CreateTransactionForm() {
       setCategory("food");
       router.refresh();
     } catch {
-      setError(true);
+      setError("Não foi possível salvar. Tente de novo.");
     } finally {
       setIsSubmitting(false);
     }
@@ -121,7 +127,7 @@ export function CreateTransactionForm() {
 
       {error && (
         <p className="text-sm text-danger">
-          Não foi possível salvar. Confira se o backend está no ar e tente de novo.
+          {error}
         </p>
       )}
 

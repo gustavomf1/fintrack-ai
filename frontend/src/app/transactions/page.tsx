@@ -1,4 +1,7 @@
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { CreateTransactionForm } from "./create-transaction-form";
+import { LogoutButton } from "./logout-button";
 import { categoryDot, categoryLabel } from "./categories";
 
 type Transaction = {
@@ -14,11 +17,19 @@ const currency = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
 });
 
-async function getTransactions(): Promise<{ data: Transaction[]; error: boolean }> {
+async function apiFetch(path: string, cookieHeader: string) {
+  return fetch(`${process.env.NEXT_PUBLIC_API_URL}${path}`, {
+    cache: "no-store",
+    headers: { Cookie: cookieHeader },
+  });
+}
+
+async function getTransactions(
+  cookieHeader: string,
+): Promise<{ data: Transaction[]; error: boolean }> {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/transactions`, {
-      cache: "no-store",
-    });
+    const res = await apiFetch("/transactions", cookieHeader);
+    if (res.status === 401) redirect("/login");
     if (!res.ok) return { data: [], error: true };
     return { data: await res.json(), error: false };
   } catch {
@@ -26,16 +37,39 @@ async function getTransactions(): Promise<{ data: Transaction[]; error: boolean 
   }
 }
 
+async function getCurrentUser(cookieHeader: string): Promise<{ email: string } | null> {
+  try {
+    const res = await apiFetch("/auth/me", cookieHeader);
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
 export default async function TransactionsPage() {
-  const { data: transactions, error } = await getTransactions();
+  const cookieStore = await cookies();
+  const cookieHeader = cookieStore.toString();
+
+  const [{ data: transactions, error }, user] = await Promise.all([
+    getTransactions(cookieHeader),
+    getCurrentUser(cookieHeader),
+  ]);
   const total = transactions.reduce((sum, t) => sum + t.amount, 0);
 
   return (
     <main className="mx-auto w-full max-w-4xl px-6 py-14 sm:px-10">
       <header className="mb-12 flex items-baseline justify-between gap-4">
-        <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">
-          FinTrack
-        </h1>
+        <div>
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">
+            FinTrack
+          </h1>
+          {user && (
+            <p className="mt-1 text-sm text-ink-soft">
+              {user.email} · <LogoutButton />
+            </p>
+          )}
+        </div>
         {!error && (
           <div className="text-right">
             <p className="font-mono text-2xl font-medium tabular-nums text-ink">

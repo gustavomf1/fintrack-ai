@@ -15,6 +15,13 @@
       "when": 1790448538388,
       "tag": "0001_tough_kinsey_walden",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790455638412,
+      "tag": "0002_large_korvac",
+      "breakpoints": true
     }
   ]
 }
