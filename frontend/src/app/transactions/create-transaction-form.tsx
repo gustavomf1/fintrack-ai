@@ -3,50 +3,39 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CATEGORIES, type Category } from "./categories";
+import { UnauthorizedError, useCreateTransaction } from "./use-transactions";
 
 export function CreateTransactionForm() {
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<Category>("food");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const createTransaction = useCreateTransaction();
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setIsSubmitting(true);
     setError(null);
 
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/transactions`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: parseFloat(amount),
-          date,
-          description,
-          category,
-        }),
-      });
-
-      if (res.status === 401) {
-        router.push("/login");
-        return;
-      }
-      if (!res.ok) throw new Error("request failed");
-
-      setAmount("");
-      setDate("");
-      setDescription("");
-      setCategory("food");
-      router.refresh();
-    } catch {
-      setError("Não foi possível salvar. Tente de novo.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    createTransaction.mutate(
+      { amount: parseFloat(amount), date, description, category },
+      {
+        onSuccess: () => {
+          setAmount("");
+          setDate("");
+          setDescription("");
+          setCategory("food");
+        },
+        onError: (err) => {
+          if (err instanceof UnauthorizedError) {
+            router.push("/login");
+            return;
+          }
+          setError("Não foi possível salvar. Tente de novo.");
+        },
+      },
+    );
   }
 
   return (
@@ -133,10 +122,10 @@ export function CreateTransactionForm() {
 
       <button
         type="submit"
-        disabled={isSubmitting}
+        disabled={createTransaction.isPending}
         className="w-full rounded-md bg-accent px-4 py-2.5 font-medium text-accent-ink transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {isSubmitting ? "Adicionando..." : "Adicionar transação"}
+        {createTransaction.isPending ? "Adicionando..." : "Adicionar transação"}
       </button>
     </form>
   );
