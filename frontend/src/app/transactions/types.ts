@@ -7,3 +7,8 @@ export type Transaction = {
   description: string;
   category: Category;
 };
+
+export type Insight = {
+  severity: "info" | "warning";
+  message: string;
+};

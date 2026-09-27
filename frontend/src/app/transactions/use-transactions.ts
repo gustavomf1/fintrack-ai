@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Category } from "./categories";
-import type { Transaction } from "./types";
+import type { Insight, Transaction } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -70,6 +70,20 @@ export function useUpdateTransaction() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    },
+  });
+}
+
+export function useGenerateInsights() {
+  return useMutation<Insight[], Error, void>({
+    mutationFn: async () => {
+      const res = await fetch(`${API_URL}/transactions/insights`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (res.status === 401) throw new UnauthorizedError();
+      if (!res.ok) throw new Error("Falha ao gerar análise.");
+      return res.json();
     },
   });
 }

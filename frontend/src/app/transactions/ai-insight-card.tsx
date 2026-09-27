@@ -1,69 +1,23 @@
 "use client";
 
-import { useState } from "react";
-import { categoryLabel, categoryTextClass } from "./categories";
-import { useTransactions } from "./use-transactions";
-
-const currency = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-});
-
-type InsightState = "idle" | "loading" | "done";
-
-type Insight = {
-  colorClass: string;
-  text: string;
-};
-
-function buildInsights(transactions: { amount: number; category: string; description: string; date: string }[]): Insight[] {
-  if (transactions.length === 0) {
-    return [{ colorClass: "text-ink-soft", text: "Sem transações para analisar." }];
-  }
-
-  const total = transactions.reduce((sum, t) => sum + t.amount, 0);
-  const totalsByCategory = new Map<string, number>();
-  transactions.forEach((t) => {
-    totalsByCategory.set(t.category, (totalsByCategory.get(t.category) ?? 0) + t.amount);
-  });
-
-  const [topCategory, topAmount] = [...totalsByCategory.entries()].sort((a, b) => b[1] - a[1])[0];
-  const biggest = [...transactions].sort((a, b) => b.amount - a.amount)[0];
-  const pct = Math.round((topAmount / total) * 100);
-
-  const insights: Insight[] = [
-    {
-      colorClass: categoryTextClass(topCategory),
-      text: `${categoryLabel(topCategory)} concentra ${pct}% dos seus gastos (${currency.format(topAmount)}).`,
-    },
-    {
-      colorClass: categoryTextClass(biggest.category),
-      text: `Maior gasto individual: "${biggest.description}", ${currency.format(biggest.amount)} em ${new Date(biggest.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "long" })}.`,
-    },
-  ];
-
-  const foodTotal = totalsByCategory.get("food");
-  if (foodTotal) {
-    insights.push({
-      colorClass: categoryTextClass("food"),
-      text: `Alimentação soma ${currency.format(foodTotal)}. Planejar as refeições da semana tende a reduzir esse valor.`,
-    });
-  }
-
-  return insights;
-}
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { UnauthorizedError, useGenerateInsights, useTransactions } from "./use-transactions";
 
 export function AiInsightCard() {
   const { data: transactions } = useTransactions();
-  const [state, setState] = useState<InsightState>("idle");
+  const router = useRouter();
+  const insights = useGenerateInsights();
 
-  function handleRun() {
-    setState("loading");
-    setTimeout(() => setState("done"), 1200);
-  }
+  useEffect(() => {
+    if (insights.error instanceof UnauthorizedError) router.push("/login");
+  }, [insights.error, router]);
 
-  const buttonLabel =
-    state === "idle" ? "Gerar análise" : state === "loading" ? "Analisando…" : "Atualizar análise";
+  const buttonLabel = insights.isPending
+    ? "Analisando…"
+    : insights.isSuccess
+      ? "Atualizar análise"
+      : "Gerar análise";
 
   return (
     <section className="flex flex-col gap-3.5 rounded-xl border border-line bg-surface px-6 py-5">
@@ -79,21 +33,21 @@ export function AiInsightCard() {
         </div>
         <button
           type="button"
-          onClick={handleRun}
-          disabled={state === "loading"}
+          onClick={() => insights.mutate()}
+          disabled={insights.isPending || !transactions}
           className="rounded-lg border border-line-strong bg-muted px-3 py-1.5 text-sm font-semibold text-ink transition-colors hover:border-ink-soft disabled:cursor-not-allowed disabled:opacity-60"
         >
           {buttonLabel}
         </button>
       </div>
 
-      {state === "idle" && (
+      {insights.isIdle && (
         <p className="text-sm text-ink-soft">
           Registre suas transações e gere uma análise de como estão seus gastos no mês.
         </p>
       )}
 
-      {state === "loading" && (
+      {insights.isPending && (
         <div className="flex flex-col gap-2">
           <div className="h-2.5 w-[92%] animate-pulse rounded-md bg-muted" />
           <div className="h-2.5 w-[78%] animate-pulse rounded-md bg-muted" />
@@ -101,12 +55,19 @@ export function AiInsightCard() {
         </div>
       )}
 
-      {state === "done" && transactions && (
+      {insights.isError && !(insights.error instanceof UnauthorizedError) && (
+        <p className="text-sm text-danger">Não foi possível gerar a análise. Tente de novo.</p>
+      )}
+
+      {insights.isSuccess && (
         <ul className="flex flex-col gap-2.5">
-          {buildInsights(transactions).map((insight, i) => (
+          {insights.data.map((insight, i) => (
             <li key={i} className="flex gap-2.5 text-sm leading-relaxed text-ink">
-              <span className={`mt-2 h-1.5 w-1.5 shrink-0 rounded-full ${insight.colorClass} bg-current`} aria-hidden />
-              <span>{insight.text}</span>
+              <span
+                className={`mt-2 h-1.5 w-1.5 shrink-0 rounded-full ${insight.severity === "warning" ? "bg-danger" : "bg-accent"}`}
+                aria-hidden
+              />
+              <span>{insight.message}</span>
             </li>
           ))}
         </ul>

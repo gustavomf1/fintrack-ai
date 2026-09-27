@@ -5,11 +5,14 @@ import { ZodValidationPipe } from './pipes/zod-validation.pipe';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/types/express';
+import { InsightsService } from './insights.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('transactions')
 export class TransactionsController {
-    constructor(private readonly transactionsService: TransactionsService) {}
+    constructor(
+        private readonly transactionsService: TransactionsService, 
+        private readonly insightsService: InsightsService) {}
 
     @Get()
     findAll(@CurrentUser() user: AuthenticatedUser) {
@@ -36,5 +39,11 @@ export class TransactionsController {
     @Delete(':id')
     remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
         return this.transactionsService.remove(id, user.sub);
+    }
+
+    @Post('insights')
+    async generateInsights(@CurrentUser() user: AuthenticatedUser) {
+        const transactions = await this.transactionsService.findAll(user.sub);
+        return this.insightsService.generate(transactions);
     }
 }
