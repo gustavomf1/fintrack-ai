@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { TransactionsService } from './transactions.service';
 import { createTransactionSchema, type CreateTransactionDto } from './dto/create-transaction.dto';
 import { ZodValidationPipe } from './pipes/zod-validation.pipe';
@@ -22,5 +22,19 @@ export class TransactionsController {
         @CurrentUser() user: AuthenticatedUser,
     ) {
         return this.transactionsService.create({ ...data, userId: user.sub });
+    }
+
+    @Patch(':id')
+    update(
+        @Param('id', ParseUUIDPipe) id: string,
+        @Body(new ZodValidationPipe(createTransactionSchema)) data: CreateTransactionDto,
+        @CurrentUser() user: AuthenticatedUser,
+    ) {
+        return this.transactionsService.update(id, user.sub, data);
+    }
+
+    @Delete(':id')
+    remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
+        return this.transactionsService.remove(id, user.sub);
     }
 }

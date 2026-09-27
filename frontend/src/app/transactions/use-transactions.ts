@@ -53,3 +53,40 @@ export function useCreateTransaction() {
     },
   });
 }
+
+export function useUpdateTransaction() {
+  const queryClient = useQueryClient();
+  return useMutation<Transaction, Error, { id: string; data: NewTransaction }>({
+    mutationFn: async ({ id, data }) => {
+      const res = await fetch(`${API_URL}/transactions/${id}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (res.status === 401) throw new UnauthorizedError();
+      if (!res.ok) throw new Error("Falha ao atualizar transação.");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    },
+  });
+}
+
+export function useDeleteTransaction() {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: async (id) => {
+      const res = await fetch(`${API_URL}/transactions/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (res.status === 401) throw new UnauthorizedError();
+      if (!res.ok) throw new Error("Falha ao excluir transação.");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    },
+  });
+}
