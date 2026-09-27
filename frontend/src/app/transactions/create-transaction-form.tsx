@@ -3,51 +3,103 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CATEGORIES, type Category } from "./categories";
-import { UnauthorizedError, useCreateTransaction } from "./use-transactions";
+import type { Transaction } from "./types";
+import { UnauthorizedError, useCreateTransaction, useUpdateTransaction } from "./use-transactions";
 
-export function CreateTransactionForm() {
-  const [amount, setAmount] = useState("");
-  const [date, setDate] = useState("");
-  const [description, setDescription] = useState("");
-  const [category, setCategory] = useState<Category>("food");
+function toDateInputValue(date: string) {
+  return date.slice(0, 10);
+}
+
+const emptyForm = {
+  amount: "",
+  date: "",
+  description: "",
+  category: "food" as Category,
+};
+
+export function CreateTransactionForm({
+  editingTransaction,
+  onDoneEditing,
+}: {
+  editingTransaction: Transaction | null;
+  onDoneEditing: () => void;
+}) {
+  const [amount, setAmount] = useState(
+    editingTransaction ? String(editingTransaction.amount) : emptyForm.amount,
+  );
+  const [date, setDate] = useState(
+    editingTransaction ? toDateInputValue(editingTransaction.date) : emptyForm.date,
+  );
+  const [description, setDescription] = useState(
+    editingTransaction?.description ?? emptyForm.description,
+  );
+  const [category, setCategory] = useState<Category>(
+    editingTransaction?.category ?? emptyForm.category,
+  );
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+
   const createTransaction = useCreateTransaction();
+  const updateTransaction = useUpdateTransaction();
+  const isPending = createTransaction.isPending || updateTransaction.isPending;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
-    createTransaction.mutate(
-      { amount: parseFloat(amount), date, description, category },
-      {
+    const data = { amount: parseFloat(amount), date, description, category };
+    const onError = (err: Error) => {
+      if (err instanceof UnauthorizedError) {
+        router.push("/login");
+        return;
+      }
+      setError("Não foi possível salvar. Tente de novo.");
+    };
+
+    if (editingTransaction) {
+      updateTransaction.mutate(
+        { id: editingTransaction.id, data },
+        { onSuccess: onDoneEditing, onError },
+      );
+    } else {
+      createTransaction.mutate(data, {
         onSuccess: () => {
-          setAmount("");
-          setDate("");
-          setDescription("");
-          setCategory("food");
+          setAmount(emptyForm.amount);
+          setDate(emptyForm.date);
+          setDescription(emptyForm.description);
+          setCategory(emptyForm.category);
         },
-        onError: (err) => {
-          if (err instanceof UnauthorizedError) {
-            router.push("/login");
-            return;
-          }
-          setError("Não foi possível salvar. Tente de novo.");
-        },
-      },
-    );
+        onError,
+      });
+    }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      <div>
-        <label htmlFor="amount" className="mb-1.5 block text-sm text-ink-soft">
-          Valor
-        </label>
-        <div className="flex items-center rounded-md border border-line bg-surface px-3 focus-within:border-accent">
-          <span className="font-mono text-sm text-ink-soft">R$</span>
+    <form
+      onSubmit={handleSubmit}
+      className="flex min-w-[280px] flex-1 basis-[340px] flex-col gap-5 rounded-xl border border-line bg-surface p-6"
+      style={{ maxWidth: 400 }}
+    >
+      <div className="flex items-center justify-between">
+        <span className="text-[15px] font-bold text-ink">
+          {editingTransaction ? "Editar transação" : "Nova transação"}
+        </span>
+        {editingTransaction && (
+          <button
+            type="button"
+            onClick={onDoneEditing}
+            className="text-sm text-ink-soft hover:text-ink"
+          >
+            Cancelar
+          </button>
+        )}
+      </div>
+
+      <label className="flex flex-col gap-2">
+        <span className="text-[13px] font-medium text-ink-soft">Valor</span>
+        <div className="flex items-baseline gap-2 rounded-lg border border-line-strong bg-paper px-4 py-3.5">
+          <span className="font-mono text-base text-ink-soft">R$</span>
           <input
-            id="amount"
             type="number"
             step="0.01"
             min="0"
@@ -55,29 +107,26 @@ export function CreateTransactionForm() {
             placeholder="0,00"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="w-full bg-transparent px-2 py-2.5 font-mono text-ink outline-none"
+            className="min-w-0 flex-1 bg-transparent font-mono text-2xl font-semibold text-ink outline-none"
           />
         </div>
-      </div>
+      </label>
 
-      <div>
-        <label htmlFor="description" className="mb-1.5 block text-sm text-ink-soft">
-          Descrição
-        </label>
+      <label className="flex flex-col gap-2">
+        <span className="text-[13px] font-medium text-ink-soft">Descrição</span>
         <input
-          id="description"
           type="text"
           required
           placeholder="Ex: almoço, uber, netflix"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full rounded-md border border-line bg-surface px-3 py-2.5 text-ink outline-none focus:border-accent"
+          className="rounded-lg border border-line-strong bg-paper px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent"
         />
-      </div>
+      </label>
 
-      <div>
-        <span className="mb-1.5 block text-sm text-ink-soft">Categoria</span>
-        <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col gap-2">
+        <span className="text-[13px] font-medium text-ink-soft">Categoria</span>
+        <div className="grid grid-cols-2 gap-2">
           {CATEGORIES.map((c) => {
             const selected = category === c.value;
             return (
@@ -86,13 +135,13 @@ export function CreateTransactionForm() {
                 type="button"
                 aria-pressed={selected}
                 onClick={() => setCategory(c.value)}
-                className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors ${
                   selected
-                    ? "border-accent bg-accent-soft text-ink"
-                    : "border-line text-ink-soft hover:border-accent"
+                    ? `${c.soft} ${c.text} border-transparent`
+                    : "border-line-strong text-ink-soft hover:border-ink-soft"
                 }`}
               >
-                <span className={`h-2 w-2 rounded-full ${c.dot}`} aria-hidden />
+                <span className={`h-2 w-2 shrink-0 rounded-full ${c.dot}`} aria-hidden />
                 {c.label}
               </button>
             );
@@ -100,32 +149,29 @@ export function CreateTransactionForm() {
         </div>
       </div>
 
-      <div>
-        <label htmlFor="date" className="mb-1.5 block text-sm text-ink-soft">
-          Data
-        </label>
+      <label className="flex flex-col gap-2">
+        <span className="text-[13px] font-medium text-ink-soft">Data</span>
         <input
-          id="date"
           type="date"
           required
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="w-full rounded-md border border-line bg-surface px-3 py-2.5 text-ink outline-none focus:border-accent"
+          className="rounded-lg border border-line-strong bg-paper px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent"
         />
-      </div>
+      </label>
 
-      {error && (
-        <p className="text-sm text-danger">
-          {error}
-        </p>
-      )}
+      {error && <p className="text-sm text-danger">{error}</p>}
 
       <button
         type="submit"
-        disabled={createTransaction.isPending}
-        className="w-full rounded-md bg-accent px-4 py-2.5 font-medium text-accent-ink transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+        disabled={isPending}
+        className="rounded-lg bg-accent px-4 py-3 text-sm font-bold text-accent-ink transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-45"
       >
-        {createTransaction.isPending ? "Adicionando..." : "Adicionar transação"}
+        {isPending
+          ? "Salvando..."
+          : editingTransaction
+            ? "Salvar alterações"
+            : "Adicionar transação"}
       </button>
     </form>
   );
