@@ -60,7 +60,7 @@ Exemplos de palavras-chave por categoria:
 - subscription: netflix, spotify, academia, assinatura
 - food: mercado, restaurante, ifood, padaria, lanche, lanchonete, almoço, jantar, café, comida
 
-Use "other" apenas quando a descrição não tiver nenhuma palavra-chave clara de categoria — não use "other" só porque o nome da marca é desconhecido.`,
+Use "other" apenas quando a descrição não tiver nenhuma palavra-chave clara de categoria, não use "other" só porque o nome da marca é desconhecido.`,
       config: {
         responseMimeType: 'application/json',
         responseSchema: {

@@ -66,11 +66,11 @@ export function CategorySuggestionModal({
         <p className="text-[15px] font-bold text-ink">Sugestão de categoria</p>
         {suggestionFailed ? (
           <p className="mt-1 mb-4 text-sm text-danger">
-            Não foi possível sugerir automaticamente — escolha a categoria manualmente.
+            Não foi possível sugerir automaticamente, escolha a categoria manualmente.
           </p>
         ) : (
           <p className="mt-1 mb-4 text-sm text-ink-soft">
-            Baseado em &quot;{description}&quot;, a IA sugere a categoria abaixo — pode trocar se
+            Baseado em &quot;{description}&quot;, a IA sugere a categoria abaixo, pode trocar se
             quiser.
           </p>
         )}
