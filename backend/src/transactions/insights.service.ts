@@ -7,6 +7,10 @@ type Insight = {
   message: string;
 };
 
+type Category = Transaction['category'];
+
+const CATEGORIES: Category[] = ['food', 'transport', 'subscription', 'other'];
+
 @Injectable()
 export class InsightsService {
   private readonly ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -40,6 +44,37 @@ export class InsightsService {
     }
 
     return JSON.parse(response.text);
+  }
+
+  async suggestCategory(description: string): Promise<Category> {
+    const response = await this.ai.models.generateContent({
+      model: 'gemini-3.8-flash',
+      contents: `Classifique a descrição de uma transação financeira em uma das categorias: food, transport, subscription, other.
+
+Descrição: "${description}"
+
+Preste atenção em palavras-chave que indiquem a categoria, mesmo que a descrição também tenha um nome de marca ou produto que você não reconheça (ex: "lanche" ou "lanchonete" indicam food mesmo vindo junto de uma marca desconhecida).
+
+Exemplos de palavras-chave por categoria:
+- transport: uber, 99, gasolina, estacionamento, ônibus, metrô, pedágio
+- subscription: netflix, spotify, academia, assinatura
+- food: mercado, restaurante, ifood, padaria, lanche, lanchonete, almoço, jantar, café, comida
+
+Use "other" apenas quando a descrição não tiver nenhuma palavra-chave clara de categoria — não use "other" só porque o nome da marca é desconhecido.`,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.STRING,
+          enum: CATEGORIES,
+        },
+      },
+    });
+
+    if (!response.text) {
+      throw new Error('Gemini returned an empty response');
+    }
+
+    return JSON.parse(response.text) as Category;
   }
 
   private buildPrompt(transactions: Transaction[]) {

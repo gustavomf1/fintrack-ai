@@ -74,6 +74,23 @@ export function useUpdateTransaction() {
   });
 }
 
+export function useSuggestCategory() {
+  return useMutation<Category, Error, string>({
+    mutationFn: async (description) => {
+      const res = await fetch(`${API_URL}/transactions/suggest-category`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description }),
+      });
+      if (res.status === 401) throw new UnauthorizedError();
+      if (!res.ok) throw new Error("Falha ao sugerir categoria.");
+      const data: { category: Category } = await res.json();
+      return data.category;
+    },
+  });
+}
+
 export function useGenerateInsights() {
   return useMutation<Insight[], Error, void>({
     mutationFn: async () => {

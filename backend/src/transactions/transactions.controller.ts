@@ -6,6 +6,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/types/express';
 import { InsightsService } from './insights.service';
+import { suggestCategorySchema, type SuggestCategoryDto } from './dto/suggest-category.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('transactions')
@@ -45,5 +46,13 @@ export class TransactionsController {
     async generateInsights(@CurrentUser() user: AuthenticatedUser) {
         const transactions = await this.transactionsService.findAll(user.sub);
         return this.insightsService.generate(transactions);
+    }
+
+    @Post('suggest-category')
+    async suggestCategory(
+        @Body(new ZodValidationPipe(suggestCategorySchema)) data: SuggestCategoryDto,
+    ) {
+        const category = await this.insightsService.suggestCategory(data.description);
+        return { category };
     }
 }
