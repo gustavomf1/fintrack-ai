@@ -3,9 +3,11 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { LogoutButton } from "./logout-button";
 import { TransactionsWorkspace } from "./transactions-workspace";
+const BACKEND_URL = process.env.BACKEND_URL?.replace(/\/$/, "") || "http://localhost:3000";
+
 
 async function apiFetch(path: string, cookieHeader: string) {
-  return fetch(`${process.env.NEXT_PUBLIC_API_URL}${path}`, {
+  return fetch(`${BACKEND_URL}${path}`, {
     cache: "no-store",
     headers: { Cookie: cookieHeader },
   });
