@@ -12,6 +12,7 @@ const COOKIE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const cookieOptions = {
   httpOnly: true,
   sameSite: 'lax' as const,
+  secure: process.env.NODE_ENV === 'production',
   path: '/',
 };
 

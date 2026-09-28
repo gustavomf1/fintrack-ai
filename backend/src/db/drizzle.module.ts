@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { Pool } from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { transactions } from './schema';
 
 export const DRIZZLE = 'DRIZZLE';
 
@@ -10,8 +9,14 @@ export const DRIZZLE = 'DRIZZLE';
         {
             provide: DRIZZLE,
             useFactory: () => {
+                const connectionString = process.env.DATABASE_URL;
+                if (!connectionString) {
+                    throw new Error('DATABASE_URL nao esta definida');
+                }
+
                 const pool = new Pool({
-                    connectionString: process.env.DATABASE_URL,
+                    connectionString,
+                    max: process.env.NODE_ENV === 'production' ? 1 : 10,
                 });
                 return drizzle(pool);
             },
