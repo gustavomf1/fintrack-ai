@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 
-const backendUrl = process.env.BACKEND_URL ?? "http://localhost:3000";
+const configuredBackendUrl = process.env.BACKEND_URL?.replace(/\/$/, "");
+
+if (process.env.VERCEL && !configuredBackendUrl) {
+  throw new Error("BACKEND_URL must be configured in Vercel");
+}
+
+const backendUrl = configuredBackendUrl || "http://localhost:3000";
 
 const nextConfig: NextConfig = {
   async rewrites() {
