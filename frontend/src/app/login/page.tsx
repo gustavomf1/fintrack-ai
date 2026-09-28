@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 type Mode = "login" | "register";
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api";
+const API_URL = "/api";
 
 export default function LoginPage() {
   const [mode, setMode] = useState<Mode>("login");
