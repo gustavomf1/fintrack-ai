@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TransactionsController } from './transactions.controller';
 import { TransactionsService } from './transactions.service';
+import { InsightsService } from './insights.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { AuthenticatedUser } from '../auth/types/express';
 
@@ -27,7 +28,10 @@ describe('TransactionsController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TransactionsController],
-      providers: [{ provide: TransactionsService, useValue: mockService }],
+      providers: [
+        { provide: TransactionsService, useValue: mockService },
+        { provide: InsightsService, useValue: {} },
+      ],
     })
       .overrideGuard(JwtAuthGuard)
       .useValue({ canActivate: () => true })

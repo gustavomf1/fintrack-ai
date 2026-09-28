@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 type Mode = "login" | "register";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api";
 
 export default function LoginPage() {
   const [mode, setMode] = useState<Mode>("login");
@@ -21,7 +22,7 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/${mode}`, {
+      const res = await fetch(`${API_URL}/auth/${mode}`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
