@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CATEGORIES, type Category } from "./categories";
 import { UnauthorizedError, useCreateTransaction, useSuggestCategory } from "./use-transactions";
@@ -25,8 +25,12 @@ export function CategorySuggestionModal({
 
   const suggestCategory = useSuggestCategory();
   const createTransaction = useCreateTransaction();
+  const hasRequestedSuggestion = useRef(false);
 
   useEffect(() => {
+    if (hasRequestedSuggestion.current) return;
+    hasRequestedSuggestion.current = true;
+
     suggestCategory.mutate(description, {
       onSuccess: (category) => setSelected(category),
       onError: (err) => {
@@ -38,8 +42,7 @@ export function CategorySuggestionModal({
         setSelected("other");
       },
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [description, router, suggestCategory]);
 
   function handleConfirm() {
     if (!selected) return;
